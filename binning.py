@@ -47,7 +47,7 @@ class GCData:
         self.GC = self.GC[:length]
 
 
-def binning(bam_path: str, fa_path: dict, bp_per_bin: int) -> Dict[str, RDdata]:
+def binning(bam_path: str, fa_path: dict, bp_per_bin: int = 1000) -> Dict[str, RDdata]:
     """Divide the DNA sequence into bins according to a certain length and calculate the RD value of each bin.
 
     Parameters

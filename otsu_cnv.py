@@ -293,7 +293,7 @@ def get_result(
     return result
 
 
-def OTSUCNV(data: RDdata, *, bp_per_bin: int) -> pd.DataFrame:
+def OTSUCNV(data: RDdata, *, bp_per_bin: int = 1000) -> pd.DataFrame:
     """Copy number variations detection.
 
     Parameters

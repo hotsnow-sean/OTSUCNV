@@ -1,14 +1,10 @@
 import math
-import warnings
-from dataclasses import dataclass
-from typing import Dict
 
 import numpy as np
 import pysam
-from Bio import SeqIO
+from Bio import Seq, SeqIO, SeqUtils
 
 
-@dataclass
 class RDdata:
     pos: np.ndarray  # the index of bin
     RD: np.ndarray  # the RD of bin
@@ -18,36 +14,31 @@ class RDdata:
         self.RD = np.zeros(num_of_bin)
 
 
-@dataclass()
 class GCData:
     valid: np.ndarray
     GC: np.ndarray  # GC per thousand (GCcount / bp_per_bin * 1000)
     bp_per_bin: int
 
-    def __init__(self, fasta, bp_per_bin: int) -> None:
+    def __init__(self, fasta: Seq.Seq, bp_per_bin: int) -> None:
         self.bp_per_bin = bp_per_bin
 
         num_of_bin = len(fasta) // bp_per_bin
         self.valid = np.full(num_of_bin, True)
         self.GC = np.full(num_of_bin, 0)
 
-        it = iter(fasta)
-
         for i in range(num_of_bin):
-            for _ in range(bp_per_bin):
-                bp = next(it)
-                if self.valid[i] and bp not in "AGCTagct":
-                    self.valid[i] = False
-                if bp in "GCgc":
-                    self.GC[i] += 1
-            self.GC[i] = round(self.GC[i] / bp_per_bin * 1000)
+            cur = fasta[i * bp_per_bin : (i + 1) * bp_per_bin]
+            self.valid[i] = all(dp in "AGCTSWagctsw" for dp in cur)
+            self.GC[i] = round(SeqUtils.gc_fraction(cur) * 1000)
 
     def limit(self, length: int):
         self.valid = self.valid[:length]
         self.GC = self.GC[:length]
 
 
-def binning(bam_path: str, fa_path: dict, bp_per_bin: int = 1000) -> Dict[str, RDdata]:
+def binning(
+    bam_path: str, fa_path: dict[str, str], bp_per_bin: int = 1000
+) -> dict[str, RDdata]:
     """Divide the DNA sequence into bins according to a certain length and calculate the RD value of each bin.
 
     Parameters
@@ -55,7 +46,7 @@ def binning(bam_path: str, fa_path: dict, bp_per_bin: int = 1000) -> Dict[str, R
     bam_path: str
     The path of bam file.
 
-    fa_path: Dict[str, str]
+    fa_path: dict[str, str]
     The path of reference.
 
     bp_per_bin: int
@@ -65,8 +56,8 @@ def binning(bam_path: str, fa_path: dict, bp_per_bin: int = 1000) -> Dict[str, R
     -----
     The name in `fa_path` should appear in the information corresponding to the bam file, otherwise an exception will be thrown.
     """
-    RDs: Dict[str, RDdata] = {}
-    GCs: Dict[str, GCData] = {}
+    RDs: dict[str, RDdata] = {}
+    GCs: dict[str, GCData] = {}
     with pysam.AlignmentFile(bam_path, "rb", ignore_truncation=True) as samfile:
         refs = {
             key: value for key, value in fa_path.items() if key in samfile.references
@@ -78,20 +69,13 @@ def binning(bam_path: str, fa_path: dict, bp_per_bin: int = 1000) -> Dict[str, R
         for chr, fasta in refs.items():
             expect_len = samfile.get_reference_length(chr)
             num_of_bin = expect_len // bp_per_bin
-            if isinstance(fasta, str):
-                fasta = SeqIO.read(fasta, "fasta").seq
-                actual_len = len(fasta)
-                if expect_len > actual_len:
-                    raise ValueError(
-                        f"{chr}'s reference length is not matched! expect {expect_len}, actual {actual_len}"
-                    )
-                elif expect_len < actual_len:
-                    warnings.warn(
-                        f"{chr}'s reference length is not matched! expect {expect_len}, actual {actual_len}"
-                    )
-                GCs[chr] = GCData(fasta, bp_per_bin)
-            else:
-                raise ValueError("'fa_path': the key should be a str")
+            fasta = SeqIO.read(fasta, "fasta").seq
+            actual_len = len(fasta)
+            if expect_len > actual_len:
+                raise ValueError(
+                    f"{chr}'s reference length is not matched! expect {expect_len}, actual {actual_len}"
+                )
+            GCs[chr] = GCData(fasta, bp_per_bin)
             RDs[chr] = RDdata(num_of_bin)
             GCs[chr].limit(num_of_bin)
 

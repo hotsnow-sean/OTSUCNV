@@ -5,8 +5,8 @@
 
 import argparse
 
-from binning import binning
-from otsu_cnv import OTSUCNV
+from otsucnv.binning import binning
+from otsucnv.otsu_cnv import OTSUCNV
 
 parser = argparse.ArgumentParser()
 parser.add_argument("bam", help="the bam file path")

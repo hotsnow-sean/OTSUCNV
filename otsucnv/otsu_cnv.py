@@ -6,7 +6,7 @@ from scipy import stats
 from scipy.signal import argrelmax, argrelmin
 from sklearn.preprocessing import minmax_scale
 
-from binning import RDdata
+from .binning import RDdata
 
 
 def init_segment(data: np.ndarray):

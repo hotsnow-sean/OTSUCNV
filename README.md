@@ -47,8 +47,9 @@ Tips: The provided contig (the name of the reference sequence) must be accurate 
 ### File Structure
 
 ```shell
-├── binning.py      # preprocessing input files into RD profiles. API: binning
-├── otsu_cnv.py     # main code of the method. API: OTSUCNV
+├── otsucnv         # otsucnv package
+│   ├── binning.py  # preprocessing input files into RD profiles. API: binning
+│   └── otsu_cnv.py # main code of the method. API: OTSUCNV
 ├── README.md       # readme
 └── run_single.py   # entry file for simple use
 ```
